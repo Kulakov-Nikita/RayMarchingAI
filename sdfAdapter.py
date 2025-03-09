@@ -1,3 +1,5 @@
+import pickle
+
 from deepSDF import DeepSDF, fit
 import torch
 import numpy as np
@@ -5,7 +7,13 @@ import numpy as np
 
 class SDFAdapter:
     def __init__(self):
-        self.deepSDF, self.latent_code = fit()
+        # self.deepSDF, self.latent_code = fit()
+        self.deepSDF = DeepSDF()
+        self.deepSDF.load_state_dict(torch.load("model_1.model", weights_only=True))
+        self.deepSDF.eval()
+        self.deepSDF = self.deepSDF.cuda()
+        with open("latent_code_1.lc", "rb") as file:
+            self.latent_code = pickle.load(file)
 
     def sdf(self, positions: torch.Tensor):
         with torch.no_grad(): 

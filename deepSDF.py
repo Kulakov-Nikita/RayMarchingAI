@@ -1,9 +1,13 @@
-import torch 
+import pickle
+
+import torch
 import torch.nn as nn 
 import torch.optim as optim 
 import numpy as np 
 import matplotlib.pyplot as plt 
-from mpl_toolkits.mplot3d import Axes3D 
+from mpl_toolkits.mplot3d import Axes3D
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True
  
 # Архитектура DeepSDF 
 class DeepSDF(nn.Module): 
@@ -12,12 +16,12 @@ class DeepSDF(nn.Module):
         self.latent_dim = latent_dim 
         self.model = nn.Sequential( 
             nn.Linear(latent_dim + 3, 512), nn.ReLU(), 
-            nn.Linear(512, 512), nn.ReLU(), 
-            nn.Linear(512, 512), nn.ReLU(), 
+            # nn.Linear(512, 512), nn.ReLU(), 
+            # nn.Linear(512, 512), nn.ReLU(), 
             nn.Linear(512, 1)  # Выход - значение SDF 
         ) 
      
-    def forward(self, latent_code, coords): 
+    def forward(self, latent_code, coords):
         x = torch.cat([latent_code, coords], dim=-1) 
         return self.model(x) 
  
@@ -30,7 +34,8 @@ def generate_sdf_samples(num_samples=10000, radius=1.0):
 def fit():
     # Инициализация модели и оптимизатора 
     latent_dim = 256 
-    model = DeepSDF(latent_dim=latent_dim).cuda() 
+    model = DeepSDF(latent_dim=latent_dim).cuda()
+    model.compile()
     optimizer = optim.Adam(model.parameters(), lr=0.001) 
     criterion = nn.MSELoss() 
     
@@ -67,10 +72,10 @@ def visualize_sdf(model, latent_code, resolution=30):
     z = np.linspace(-1.5, 1.5, resolution) 
     X, Y, Z = np.meshgrid(x, y, z) 
     points = np.vstack([X.ravel(), Y.ravel(), Z.ravel()]).T 
-    points_torch = torch.tensor(points, dtype=torch.float32) 
-     
+    points_torch = torch.tensor(points, dtype=torch.float32, device=torch.device('cuda'))
+
     with torch.no_grad(): 
-        sdf_values = model(latent_code[:1].expand(points_torch.shape[0], -1), points_torch).numpy().flatten() 
+        sdf_values = model(latent_code[:1].expand(points_torch.shape[0], -1), points_torch).cpu().numpy().flatten()
      
     surface_points = points[np.abs(sdf_values) < 0.05] 
      
@@ -86,3 +91,6 @@ def visualize_sdf(model, latent_code, resolution=30):
 if __name__ == '__main__':
     model, latent_code = fit()
     visualize_sdf(model, latent_code)
+    torch.save(model.state_dict(), "model_1.model")
+    with open("latent_code_1.lc", "wb") as file:
+        pickle.dump(latent_code, file)
