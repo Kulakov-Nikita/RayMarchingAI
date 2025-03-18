@@ -1,3 +1,4 @@
+import sys
 import time
 
 import numpy as np
@@ -63,7 +64,24 @@ class Renderer:
         return (brightness.reshape((self.camera.height, self.camera.width)).cpu().numpy() * 255).astype(np.uint8)
 
 def main():
-    renderer = Renderer(width=1280, height=720, max_steps=30, epsilon=1e-3, max_dist=10.0,
+    output_path: str = sys.argv[1]
+    width: int = int(sys.argv[2])
+    height: int = int(sys.argv[3])
+    max_step: int = 30
+    precision: float = 1e-3
+    max_dist: float = 10.0
+
+    for i in range(4, len(sys.argv), 2):
+        print(sys.argv[i])
+        match(sys.argv[i]):
+            case '--max_step':
+                max_step = int(sys.argv[i + 1])
+            case '--precision':
+                precision = float(sys.argv[i + 1])
+            case '--max_dist':
+                max_dist = float(sys.argv[i + 1])
+
+    renderer = Renderer(width=width, height=height, max_steps=max_step, epsilon=precision, max_dist=max_dist,
                         device=torch.device('cuda'), tensors_type=torch.float32)
 
     renderer.set_scene(sdfObject=SDFAdapter(),
@@ -73,7 +91,7 @@ def main():
     frame = renderer.render_frame()
     end_time = time.time()
     print(f"Render time: {end_time-start_time}")
-    cv2.imwrite('frame.jpg', frame)
+    cv2.imwrite(output_path, frame)
 
 
 

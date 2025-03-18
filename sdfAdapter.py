@@ -8,7 +8,7 @@ import numpy as np
 class SDFAdapter:
     def __init__(self):
         # self.deepSDF, self.latent_code = fit()
-        self.deepSDF = DeepSDF()
+        self.deepSDF = DeepSDF(latent_dim=16)
         self.deepSDF.load_state_dict(torch.load("model_1.model", weights_only=True))
         self.deepSDF.eval()
         self.deepSDF = self.deepSDF.cuda()
